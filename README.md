@@ -13,7 +13,7 @@ criar links simbólicos (ln -s) para elas no /home/usuario.
 
 Suponha:
 
-Seu usuário é goku
+Seu usuário é anon
 
 Sua partição de dados está montada em /mnt/dados
 
@@ -21,13 +21,13 @@ Você quer mover o conteúdo de ~/Documentos ~/Downloads ~/Imagens ~/Música ~/V
 
 
 Resultado:
-
-Documentos -> /mnt/dados/goku/Documentos
-Downloads  -> /mnt/dados/goku/Downloads
-Imagens    -> /mnt/dados/goku/Imagens
-Música     -> /mnt/dados/goku/Música
-Vídeos     -> /mnt/dados/goku/Vídeos
-
+```
+Documentos -> /mnt/dados/anon/Documentos
+Downloads  -> /mnt/dados/anon/Downloads
+Imagens    -> /mnt/dados/anon/Imagens
+Música     -> /mnt/dados/anon/Música
+Vídeos     -> /mnt/dados/anon/Vídeos
+```
 ![criar_links_home](usr/share/doc/criar_links_home/4.png)
 
 
