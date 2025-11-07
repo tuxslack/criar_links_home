@@ -6,6 +6,7 @@
 # Versão:        1.0
 # Data:          06/11/2025
 # Script:        criar_links_home.sh
+# Repositório:   https://github.com/tuxslack/criar_links_home/
 #
 # Descrição:     
 #                
@@ -238,20 +239,22 @@ sleep 1
 
 # Exibe lista de partições no yad (usando sudo)
 
+sudo lsblk -o NAME,MOUNTPOINT,LABEL,FSTYPE,SIZE,UUID
+
 particoes=$(sudo lsblk -o NAME,MOUNTPOINT,LABEL,FSTYPE,SIZE,UUID | tee -a "$log")
 
 
 # Mostra a lista num diálogo informativo
 
-yad --center --title="Partições detectadas" \
+yad --center --window-icon "$logo" --title="Partições detectadas" \
     --text="Lista de partições disponíveis:\n\n<tt>$particoes</tt>\n\n⚠️ Obs: Não selecione dispositivos USB (pendrives ou HDs/SSD externos)." \
     --button="Continuar:0" \
-    --width="800" --height="400" \
+    --width="1200" --height="400" \
     2>/dev/null
 
 # Pede o UUID da partição desejada
 
-UUID=$(yad --center  --entry \
+UUID=$(yad --center --window-icon "$logo"  --entry \
     --title="Selecionar partição de dados" \
     --text="👉 Cole o UUID da partição de dados abaixo:" \
     --entry-label="UUID:" \
@@ -262,7 +265,7 @@ UUID=$(yad --center  --entry \
 
 if [[ -z "$UUID" ]]; then
 
-    yad --center --error --title="Erro" --text="Nenhum UUID informado. Operação cancelada." 2>/dev/null
+    yad --center --window-icon "$logo" --error --title="Erro" --text="Nenhum UUID informado. Operação cancelada." 2>/dev/null
 
     exit 1
 
@@ -270,7 +273,7 @@ fi
 
 echo "UUID selecionado: $UUID" | tee -a "$log"
 
-yad --center --info --title="Confirmação" --text="UUID informado:\n\n<b>$UUID</b>\n\nRegistro salvo em $log" 2>/dev/null
+yad --center --window-icon "$logo" --info --title="Confirmação" --text="UUID informado:\n\n<b>$UUID</b>\n\nRegistro salvo em $log" 2>/dev/null
 
 
 
@@ -346,7 +349,7 @@ notify-send -i gtk-dialog-info  -t 100000 "✅ Arquivo de log..." "
 Partição $fstype montada em $MOUNT_POINT"
 
 
-# Backup do fstab
+# Backup do arquivo fstab
 
 cp /etc/fstab /etc/fstab.backup_$(date +%d%m%Y_%H%M%S) 2>> "$log"
 
@@ -407,14 +410,19 @@ mount -a -v | tee -a "$log" || erro "Falha ao montar a partição (verifique o f
 # ----------------------------------------------------------------------------------------
 
 
-notify-send -i gtk-dialog-info  -t 100000 "👥 Arquivo de log..." "
-Configurando os usuários..."
+USUARIOS=$(yad --center --window-icon "$logo" --entry --title="Usuários" --text="Digite todos os nomes separados por espaço (ex: joao maria pedro)" 2>/dev/null)
 
-echo -e "\n👥 Configurando os usuários... \n"
 
-sleep 1
+if [ -z "$USUARIOS" ]; then
 
-USUARIOS=$(yad --center --entry --title="Usuários" --text="Digite todos os nomes separados por espaço (ex: joao maria pedro)" 2>/dev/null)
+    echo -e "\n❌ Usuários não encontrado.\n"
+
+    yad --center --window-icon "$logo" --error --title="Erro" --text="\n❌ Usuários não encontrado. \n" --buttons-layout=center  --button=OK:0   --width="400" --height="100" 2>/dev/null
+
+    exit 1
+
+fi
+
 
 
 for USUARIO in $USUARIOS; do
@@ -431,6 +439,13 @@ for USUARIO in $USUARIOS; do
 
   fi
 
+
+notify-send -i gtk-dialog-info  -t 100000 "👥 Arquivo de log..." "
+Configurando os usuários..."
+
+echo -e "\n👥 Configurando os usuários... \n"
+
+sleep 1
 
 # ----------------------------------------------------------------------------------------
 
@@ -462,6 +477,9 @@ fi
 # sudo mkdir -p $MOUNT_POINT/$USUARIO/{Documentos,Modelos,Público,Imagens,Downloads,Vídeos,Músicas,Desktop}
 
 
+# mkdir -p ~/{Documentos,Modelos,Público,Imagens,Downloads,Vídeos,Músicas,Desktop}
+
+
 for pasta in Documentos Modelos Público Imagens Downloads Vídeos Músicas "$pasta_desktop"; do
 
   mkdir -p "$MOUNT_POINT/$USUARIO/$pasta" 2>> "$log"
@@ -486,14 +504,16 @@ for pasta in Documentos Modelos Público Imagens Downloads Vídeos Músicas "$pa
 
   if [ -d "$HOME_DIR/$pasta" ] && [ ! -d "$MOUNT_POINT/$USUARIO/$pasta" ]; then
 
-    # Movimentação de pastas pode sobrescrever dados
+   # Movimentação de pastas pode sobrescrever dados
 
-    # sudo mv -v "$HOME_DIR/$pasta" "$MOUNT_POINT/$USUARIO/" 2>&1 | tee -a "$log"
+   # sudo mv -v "$HOME_DIR/$pasta" "$MOUNT_POINT/$USUARIO/" 2>&1 | tee -a "$log"
 
 
-rsync -aAXv --remove-source-files "$HOME_DIR/$pasta/" "$MOUNT_POINT/$USUARIO/$pasta/" 2>&1 | tee -a "$log"
+   sudo rsync -aAXv --remove-source-files "$HOME_DIR/$pasta/" "$MOUNT_POINT/$USUARIO/$pasta/" 2>&1
 
-find "$HOME_DIR/$pasta" -type d -empty -delete
+   sudo find "$HOME_DIR/$pasta" -type d -empty -delete
+
+
 
 
   else
@@ -567,6 +587,13 @@ notify-send -i gtk-dialog-info  -t 100000 "🔥️ Arquivo de log..." "Atualizan
   mkdir -p "$(dirname "$USER_DIRS_FILE")" || erro "Falha ao criar $(dirname "$USER_DIRS_FILE")"
 
 
+
+# Backup do arquivo user-dirs.dirs
+
+cp "$USER_DIRS_FILE" "$USER_DIRS_FILE"_$(date +%d%m%Y_%H%M%S) 2>> "$log"
+
+
+
 # Alguns sistemas não lidam bem com acentuação em "Área de Trabalho".
 
   cat > "$USER_DIRS_FILE" <<EOF
@@ -579,6 +606,8 @@ XDG_DOCUMENTS_DIR="$MOUNT_POINT/$USUARIO/Documentos"
 XDG_PICTURES_DIR="$MOUNT_POINT/$USUARIO/Imagens"
 XDG_VIDEOS_DIR="$MOUNT_POINT/$USUARIO/Vídeos"
 XDG_MUSIC_DIR="$MOUNT_POINT/$USUARIO/Músicas"
+XDG_TEMPLATES_DIR="$MOUNT_POINT/$USUARIO/Modelos"
+XDG_PUBLICSHARE_DIR="$MOUNT_POINT/$USUARIO/Público"
 EOF
 
 
@@ -595,6 +624,12 @@ EOF
 
 
 
+# Removendo as pastas...
+
+rm -Rf "$HOME_DIR"/{Documentos,Modelos,Público,Imagens,Downloads,Vídeos,Músicas,"$pasta_desktop"} 2>> "$log"
+
+sleep 1
+
   # Crie links simbólicos apontando para o novo local.
 
   # Não esta criando o link simbólico da pasta Desktop.
@@ -605,15 +640,19 @@ notify-send -i gtk-dialog-info  -t 100000 "🔥️ Arquivo de log..." "
 Criando os links simbólicos das pastas (Documentos, Modelos, Público, Imagens, Downloads, Vídeos, Músicas, Desktop, etc.) para o usuário $USUARIO em $HOME_DIR..."
 
 
-# Aspas simples externas e aspas duplas internas
 
 
-sudo -u "$USUARIO" ln -sf "$MOUNT_POINT/$USUARIO/$pasta_desktop" "$HOME_DIR/$pasta_desktop" 2>> "$log"
-sudo -u "$USUARIO" ln -sf "$MOUNT_POINT/$USUARIO/Downloads"      "$HOME_DIR/Downloads"      2>> "$log"
-sudo -u "$USUARIO" ln -sf "$MOUNT_POINT/$USUARIO/Documentos"     "$HOME_DIR/Documentos"     2>> "$log"
-sudo -u "$USUARIO" ln -sf "$MOUNT_POINT/$USUARIO/Imagens"        "$HOME_DIR/Imagens"        2>> "$log"
-sudo -u "$USUARIO" ln -sf "$MOUNT_POINT/$USUARIO/Vídeos"         "$HOME_DIR/Vídeos"         2>> "$log"
-sudo -u "$USUARIO" ln -sf "$MOUNT_POINT/$USUARIO/Músicas"        "$HOME_DIR/Músicas"        2>> "$log"
+sudo -u "$USUARIO" ln -sf "$MOUNT_POINT/$USUARIO/$pasta_desktop" "$HOME_DIR/"   2>> "$log"
+sudo -u "$USUARIO" ln -sf "$MOUNT_POINT/$USUARIO/Downloads"      "$HOME_DIR/"   2>> "$log"
+sudo -u "$USUARIO" ln -sf "$MOUNT_POINT/$USUARIO/Documentos"     "$HOME_DIR/"   2>> "$log"
+sudo -u "$USUARIO" ln -sf "$MOUNT_POINT/$USUARIO/Imagens"        "$HOME_DIR/"   2>> "$log"
+sudo -u "$USUARIO" ln -sf "$MOUNT_POINT/$USUARIO/Vídeos"         "$HOME_DIR/"   2>> "$log"
+sudo -u "$USUARIO" ln -sf "$MOUNT_POINT/$USUARIO/Músicas"        "$HOME_DIR/"   2>> "$log"
+sudo -u "$USUARIO" ln -sf "$MOUNT_POINT/$USUARIO/Modelos"        "$HOME_DIR/"   2>> "$log"
+sudo -u "$USUARIO" ln -sf "$MOUNT_POINT/$USUARIO/Público"        "$HOME_DIR/"   2>> "$log"
+
+
+
 
 # Desta forma, cada link simbólico terá o nome correto dentro do diretório do usuário.
 
@@ -682,6 +721,14 @@ Se o Windows usar "Inicialização Rápida" (Fast Startup), desative
 
 Painel de Controle → Opções de Energia → Escolher a função dos botões de energia → 
 Desmarque "Ligar inicialização rápida"
+
+Para desfazer essas ações:
+
+$ rm ~/{Documentos,Modelos,Público,Imagens,Downloads,Vídeos,Músicas,Desktop}
+
+$ rm ~/.config/user-dirs.dirs
+
+$ sudo reboot
 
 \n------------------------------------------------------------------------------------\n' | yad --center --window-icon="$logo" --title "Configuração concluída!" --text-info --fontname "mono 10" --buttons-layout=center --button=OK:0 --width="1300" --height="650"  2>> /dev/null
 
