@@ -61,6 +61,11 @@ sudo rm -Rf "$log"
 logo="/usr/share/icons/gnome/48x48/apps/system-users.png"
 
 
+# Pega o usuário ativo da sessão (usuário que executou o script) para usar esse nome no comando chown
+
+USER_ATIVO=$(logname)
+
+
 # Garantir que o script pare em qualquer erro
 
 # set -euo pipefail
@@ -623,6 +628,12 @@ EOF
   sudo chmod -R 755 "$USER_DIRS_FILE" 2>> "$log"
 
 
+  # Usa o nome para ajustar o dono
+
+  sudo chown -R "$USER_ATIVO":"$USER_ATIVO" "$USER_DIRS_FILE"*
+
+
+
 
 # Removendo as pastas...
 
@@ -733,6 +744,16 @@ $ sudo reboot
 \n------------------------------------------------------------------------------------\n' | yad --center --window-icon="$logo" --title "Configuração concluída!" --text-info --fontname "mono 10" --buttons-layout=center --button=OK:0 --width="1300" --height="650"  2>> /dev/null
 
 # ----------------------------------------------------------------------------------------
+
+sudo chmod 777 "$log"
+
+
+# Usa o nome para ajustar o dono
+
+sudo chown -R "$USER_ATIVO":"$USER_ATIVO" "$log"
+
+sleep 1
+
 
 echo -e "\n\nArquivo de log: \n"
 
